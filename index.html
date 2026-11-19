@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>WonderBotany ม.5 | เวอร์ชันมือถือ & ลากประกอบเอง</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mali:wght@600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    body {
+      font-family: 'Sarabun', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(160deg, #ECF9F0 0%, #FFFDF8 50%, #FDF4FA 100%);
+      color: #1E3A2F;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    h1, h2, h3, .font-cute { font-family: 'Mali', 'Sarabun', sans-serif; }
+
+    /* Lightweight CSS animations */
+    @keyframes warpIn {
+      0% { transform: scale(0.7) translateY(18px); opacity: 0; }
+      70% { transform: scale(1.03) translateY(-2px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    @keyframes popSnap {
+      0% { transform: scale(0.8); }
+      60% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    @keyframes shakeSoft {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .warp-in { animation: warpIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    .pop-snap { animation: popSnap 0.35s ease-out forwards; }
+    .shake-soft { animation: shakeSoft 0.32s ease-in-out; }
+    .slide-up { animation: slideUp 0.25s ease-out forwards; }
+
+    .card-soft {
+      background: #FFFDF9;
+      border: 2px solid #CDE8D6;
+      box-shadow: 0 6px 18px -6px rgba(34, 94, 65, 0.10);
+    }
+
+    /* Crucial for smooth finger dragging on mobile! */
+    .drag-piece {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: grab;
+    }
+    .drag-piece:active { cursor: grabbing; }
+
+    .tile-cover { transition: transform 0.28s ease, opacity 0.25s ease; }
+    .tile-cover.revealed { transform: scale(0.7) rotateY(90deg); opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body class="pb-16">
+
+  <!-- COMPACT MOBILE-FRIENDLY HEADER -->
+  <header class="sticky top-0 z-30 bg-[#FFFDF9]/95 border-b-2 border-emerald-100 shadow-sm">
+    <div class="max-w-6xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-pink-400 to-amber-300 flex items-center justify-center text-xl shrink-0 shadow-sm">
+          🌺
+        </div>
+        <div class="truncate">
+          <h1 class="text-sm sm:text-lg font-bold text-emerald-950 truncate">
+            WonderBotany <span class="text-pink-500">ม.5</span>
+          </h1>
+          <p class="text-[11px] text-emerald-700 truncate hidden sm:block">โครงสร้างดอก 4 ชั้น & การเติบโตพืชดอก</p>
+        </div>
+      </div>
+
+      <!-- Score Pill -->
+      <div class="flex items-center gap-1 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full text-xs sm:text-sm font-bold text-amber-800 shrink-0">
+        <span>⭐</span>
+        <span id="score-display">0</span>
+      </div>
+    </div>
+
+    <!-- Scrollable Tab Pills for Mobile -->
+    <div class="max-w-6xl mx-auto px-3 pb-2 flex gap-1.5 overflow-x-auto no-scrollbar">
+      <button id="nav-flower" onclick="switchMainTab('flower')"
+        class="font-cute shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-pink-500 text-white shadow-sm">
+        🌺 เสก & ลากประกอบดอก
+      </button>
+      <button id="nav-growth" onclick="switchMainTab('growth')"
+        class="font-cute shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+        🌱 การเติบโต ม.5
+      </button>
+      <button id="nav-games" onclick="switchMainTab('games')"
+        class="font-cute shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+        🎮 เกมทายคำต่อภาพ
+      </button>
+    </div>
+  </header>
+
+  <!-- Floating Toast Feedback -->
+  <div id="toast-box" class="fixed top-28 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold shadow-lg border-2 pointer-events-none whitespace-nowrap"></div>
+
+  <!-- ==================== TAB 1: FLOWER WARP & DRAG-TO-ASSEMBLE ==================== -->
+  <main id="tab-flower" class="max-w-6xl mx-auto px-3 sm:px-4 py-4 space-y-5">
+
+    <!-- Mode Switcher Card -->
+    <section class="card-soft rounded-3xl p-4 sm:p-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <span class="inline-block text-[11px] font-bold bg-pink-100 text-pink-700 px-2.5 py-0.5 rounded-full mb-1">
+            ✨ หน้าแรก: เรียนรู้ดอกชบา 4 ชั้น
+          </span>
+          <h2 class="text-lg sm:text-2xl font-bold text-emerald-950 leading-snug" id="hero-title">
+            เสกวาร์ปแยก 4 ชั้น หรือ ลากประกอบเอง!
+          </h2>
+        </div>
+
+        <!-- Toggle Explode vs Drag-Assemble -->
+        <div class="grid grid-cols-2 gap-1.5 bg-emerald-50 p-1 rounded-2xl border border-emerald-200 shrink-0">
+          <button id="btn-stage-explode" onclick="setFlowerMode('explode')"
+            class="font-cute px-3 py-2 rounded-xl text-xs font-bold bg-pink-500 text-white shadow-sm">
+            🪄 วาร์ปแยก 4 ชั้น
+          </button>
+          <button id="btn-stage-drag" onclick="setFlowerMode('drag')"
+            class="font-cute px-3 py-2 rounded-xl text-xs font-bold text-emerald-800">
+            🖐️ ลากประกอบเอง
+          </button>
+        </div>
+      </div>
+
+      <!-- WORKSPACE GRID -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- LEFT: STAGE (7 cols) -->
+        <div class="lg:col-span-7">
+
+          <!-- MODE A: WARP EXPLODE -->
+          <div id="mode-explode-box" class="bg-gradient-to-b from-[#F4FAFF] to-[#FFF6FB] rounded-2xl border-2 border-pink-200 p-3.5 sm:p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <button onclick="warpExplodeAll()"
+                class="font-cute px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-amber-400 text-white text-xs sm:text-sm font-bold shadow active:scale-95">
+                ✨ วาร์ปเสกแยกทั้งหมด!
+              </button>
+              <div class="flex gap-1.5">
+                <button onclick="summonSingle(1)" class="px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold">1</button>
+                <button onclick="summonSingle(2)" class="px-2.5 py-1.5 rounded-lg bg-pink-100 text-pink-800 text-xs font-bold">2</button>
+                <button onclick="summonSingle(3)" class="px-2.5 py-1.5 rounded-lg bg-amber-100 text-amber-800 text-xs font-bold">3</button>
+                <button onclick="summonSingle(4)" class="px-2.5 py-1.5 rounded-lg bg-purple-100 text-purple-800 text-xs font-bold">4</button>
+              </div>
+            </div>
+
+            <!-- 4 Exploded Layer Cards (Ordered 4 -> 1 or 1 -> 4 clearly labeled) -->
+            <div class="space-y-2.5" id="exploded-list">
+              <!-- Generated by JS -->
+            </div>
+
+            <p class="text-[11px] text-center text-emerald-800/75 mt-3">
+              👆 แตะที่แต่ละชั้นเพื่อดู <strong>ส่วนประกอบย่อย & หน้าที่</strong> (บนมือถือการ์ดจะเด้งขึ้นมาให้อ่านง่ายๆ)
+            </p>
+          </div>
+
+          <!-- MODE B: TOUCH & MOUSE DRAG-TO-ASSEMBLE -->
+          <div id="mode-drag-box" class="hidden bg-gradient-to-b from-[#F4FBF5] to-[#FFFDF5] rounded-2xl border-2 border-emerald-200 p-3.5 sm:p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <p class="text-xs font-bold text-emerald-900">
+                🖐️ ใช้นิ้ว/เมาส์ <strong>ลากชิ้นส่วนด้านล่าง</strong> มาวางเรียงชั้นให้ถูก (หรือแตะชิ้น ➔ แตะช่อง)
+              </p>
+              <button onclick="initDragAssemble()" class="px-3 py-1 rounded-xl bg-stone-100 text-stone-700 text-xs font-bold">
+                🔄 เริ่มใหม่
+              </button>
+            </div>
+
+            <!-- Target Flower Blueprint + 4 Drop Slots -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center mb-4">
+              <!-- Live Growing Hibiscus SVG -->
+              <div class="sm:col-span-5 bg-white rounded-2xl border border-emerald-100 p-2 flex flex-col items-center">
+                <svg viewBox="0 0 220 200" class="w-40 sm:w-full max-w-[180px] h-auto">
+                  <!-- Receptacle base -->
+                  <rect x="102" y="160" width="16" height="32" rx="5" fill="#15803D"/>
+                  <ellipse cx="110" cy="158" rx="22" ry="9" fill="#22C55E"/>
+
+                  <!-- Ghost outline -->
+                  <g opacity="0.16" stroke="#64748B" stroke-width="2" stroke-dasharray="4 4" fill="none">
+                    <path d="M96 150 Q42 125 32 70 Q65 25 98 85"/>
+                    <path d="M124 150 Q178 125 188 70 Q155 25 122 85"/>
+                    <ellipse cx="110" cy="136" rx="16" ry="18"/>
+                    <line x1="110" y1="118" x2="110" y2="45"/>
+                  </g>
+
+                  <!-- Layer 2: Corolla -->
+                  <g id="svg-asm-2" class="hidden">
+                    <path d="M98 150 Q42 125 32 70 Q62 25 100 80 L102 150 Z" fill="#F472B6" stroke="#BE185D" stroke-width="2"/>
+                    <path d="M122 150 Q178 125 188 70 Q158 25 120 80 L118 150 Z" fill="#F472B6" stroke="#BE185D" stroke-width="2"/>
+                    <path d="M92 146 Q68 85 90 36 Q110 20 130 36 Q152 85 128 146 Z" fill="#FB7185" stroke="#BE185D" stroke-width="2" opacity="0.88"/>
+                  </g>
+                  <!-- Layer 1: Calyx -->
+                  <g id="svg-asm-1" class="hidden">
+                    <path d="M96 156 Q62 150 50 120 Q78 134 100 150 Z" fill="#4ADE80" stroke="#166534" stroke-width="2"/>
+                    <path d="M124 156 Q158 150 170 120 Q142 134 120 150 Z" fill="#4ADE80" stroke="#166534" stroke-width="2"/>
+                    <path d="M96 162 Q70 164 60 148" stroke="#15803D" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+                    <path d="M124 162 Q150 164 160 148" stroke="#15803D" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+                  </g>
+                  <!-- Layer 4: Gynoecium -->
+                  <g id="svg-asm-4" class="hidden">
+                    <ellipse cx="110" cy="136" rx="16" ry="18" fill="#FEF08A" stroke="#7E22CE" stroke-width="2"/>
+                    <circle cx="104" cy="134" r="3.5" fill="#F472B6"/><circle cx="116" cy="134" r="3.5" fill="#F472B6"/><circle cx="110" cy="143" r="3.5" fill="#F472B6"/>
+                    <rect x="106" y="42" width="8" height="78" rx="3" fill="#DDD6FE" stroke="#7E22CE" stroke-width="1.5"/>
+                    <circle cx="101" cy="38" r="4.5" fill="#DB2777"/><circle cx="110" cy="34" r="4.5" fill="#DB2777"/><circle cx="119" cy="38" r="4.5" fill="#DB2777"/>
+                  </g>
+                  <!-- Layer 3: Androecium -->
+                  <g id="svg-asm-3" class="hidden">
+                    <g stroke="#D97706" stroke-width="2">
+                      <line x1="106" y1="62" x2="86" y2="55"/><line x1="106" y1="78" x2="84" y2="75"/>
+                      <line x1="114" y1="62" x2="134" y2="55"/><line x1="114" y1="78" x2="136" y2="75"/>
+                    </g>
+                    <g fill="#FACC15" stroke="#92400E" stroke-width="1">
+                      <ellipse cx="84" cy="54" rx="5" ry="3.5"/><ellipse cx="82" cy="75" rx="5" ry="3.5"/>
+                      <ellipse cx="136" cy="54" rx="5" ry="3.5"/><ellipse cx="138" cy="75" rx="5" ry="3.5"/>
+                    </g>
+                  </g>
+                </svg>
+                <div id="drag-progress-label" class="text-[11px] font-bold text-emerald-700 mt-1">ประกอบแล้ว 0 / 4 ชั้น</div>
+              </div>
+
+              <!-- 4 Drop Zones (Outside 1 -> Inside 4) -->
+              <div class="sm:col-span-7 space-y-2" id="drop-slots-container">
+                <!-- Generated by JS -->
+              </div>
+            </div>
+
+            <!-- Draggable Pieces Tray -->
+            <div class="bg-amber-50/70 rounded-2xl border border-amber-200 p-3">
+              <div class="text-[11px] font-bold text-amber-800 mb-2">🧩 ชิ้นส่วนสำหรับลากไปวาง (สุ่มตำแหน่ง):</div>
+              <div id="drag-tray" class="grid grid-cols-2 gap-2"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT (Desktop) / BOTTOM-SHEET MODAL (Mobile): WHORL INSPECTOR -->
+        <div id="whorl-modal-wrapper"
+          class="hidden lg:block fixed inset-0 z-50 bg-emerald-950/40 lg:bg-transparent lg:static lg:z-auto lg:col-span-5 items-end lg:items-start"
+          onclick="closeMobileInspector(event)">
+          <div id="whorl-modal-card"
+            class="w-full max-h-[82vh] overflow-y-auto bg-white rounded-t-[2rem] lg:rounded-3xl border-2 border-emerald-100 p-5 shadow-2xl lg:shadow-sm slide-up lg:animate-none"
+            onclick="event.stopPropagation()">
+
+            <!-- Mobile close handle -->
+            <div class="flex lg:hidden items-center justify-between mb-3 pb-2 border-b border-stone-100">
+              <span class="text-xs font-bold text-pink-600">📖 รายละเอียดส่วนประกอบดอก</span>
+              <button onclick="forceCloseMobileInspector()" class="px-3 py-1 rounded-full bg-stone-100 text-stone-700 text-xs font-bold">✕ ปิด</button>
+            </div>
+
+            <div id="ins-empty" class="text-center py-10 hidden lg:block">
+              <div class="text-4xl mb-2">🧚‍♀️</div>
+              <h3 class="font-bold text-emerald-950 text-lg">แตะที่ชั้นของดอกชบา</h3>
+              <p class="text-xs text-emerald-700 mt-1">เพื่อดูส่วนประกอบย่อย หน้าที่ และจุดออกข้อสอบ ม.5</p>
+            </div>
+
+            <div id="ins-body" class="hidden space-y-3">
+              <div class="flex items-center gap-3">
+                <div id="ins-icon" class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border-2"></div>
+                <div>
+                  <span id="ins-layer" class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-0.5"></span>
+                  <h3 id="ins-title" class="text-lg font-bold text-emerald-950 leading-tight"></h3>
+                  <p id="ins-eng" class="text-xs text-emerald-600 font-semibold"></p>
+                </div>
+              </div>
+
+              <div class="bg-purple-50 border border-purple-200 rounded-2xl p-3">
+                <div class="text-[11px] font-bold text-purple-800 mb-0.5">🔎 ส่วนประกอบย่อย</div>
+                <p id="ins-sub" class="text-xs sm:text-sm text-purple-950 leading-relaxed"></p>
+              </div>
+
+              <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
+                <div class="text-[11px] font-bold text-emerald-800 mb-0.5">🌿 หน้าที่หลัก</div>
+                <p id="ins-func" class="text-xs sm:text-sm text-emerald-950 leading-relaxed"></p>
+              </div>
+
+              <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                <div class="text-[11px] font-bold text-amber-800 mb-0.5">💡 เกร็ดออกข้อสอบ</div>
+                <p id="ins-tip" class="text-xs text-amber-950 leading-relaxed"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- COMPLETE vs PERFECT INTERACTIVE SANDBOX + MOBILE CARDS -->
+    <section class="card-soft rounded-3xl p-4 sm:p-6 space-y-4">
+      <div>
+        <span class="text-[11px] font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full">⚖️ แยกประเภทของดอก</span>
+        <h3 class="text-lg sm:text-xl font-bold text-emerald-950 mt-1">
+          “ครบส่วน (Complete)” vs “สมบูรณ์เพศ (Perfect)”
+        </h3>
+        <p class="text-xs sm:text-sm text-emerald-800/85">
+          ใช้เกณฑ์คนละอย่าง! ลองกดเปิด-ปิดสวิตช์ 4 ชั้นดูผลลัพธ์สดๆ ด้านล่างได้เลย
+        </p>
+      </div>
+
+      <!-- Sandbox Switches -->
+      <div class="bg-gradient-to-r from-emerald-50 via-amber-50/70 to-pink-50 rounded-2xl border border-emerald-200 p-3.5 sm:p-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+          <label class="cursor-pointer bg-white border-2 border-emerald-300 rounded-xl p-2 flex items-center gap-2 text-xs font-bold">
+            <input type="checkbox" id="sb-1" checked onchange="updateSandbox()" class="w-4 h-4 accent-emerald-600"> 1. กลีบเลี้ยง
+          </label>
+          <label class="cursor-pointer bg-white border-2 border-pink-300 rounded-xl p-2 flex items-center gap-2 text-xs font-bold">
+            <input type="checkbox" id="sb-2" checked onchange="updateSandbox()" class="w-4 h-4 accent-pink-500"> 2. กลีบดอก
+          </label>
+          <label class="cursor-pointer bg-white border-2 border-amber-300 rounded-xl p-2 flex items-center gap-2 text-xs font-bold">
+            <input type="checkbox" id="sb-3" checked onchange="updateSandbox()" class="w-4 h-4 accent-amber-500"> 3. เกสรผู้
+          </label>
+          <label class="cursor-pointer bg-white border-2 border-purple-300 rounded-xl p-2 flex items-center gap-2 text-xs font-bold">
+            <input type="checkbox" id="sb-4" checked onchange="updateSandbox()" class="w-4 h-4 accent-purple-600"> 4. เกสรเมีย
+          </label>
+        </div>
+        <div class="bg-white rounded-xl p-3 border border-purple-200 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap gap-1.5">
+            <span id="sb-complete" class="px-2.5 py-1 rounded-full text-xs font-bold"></span>
+            <span id="sb-perfect" class="px-2.5 py-1 rounded-full text-xs font-bold"></span>
+          </div>
+          <p id="sb-ex" class="text-xs text-stone-600 font-medium"></p>
+        </div>
+      </div>
+
+      <!-- Mobile-friendly 4 Summary Cards (No cramped table!) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+        <div class="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5">
+          <div class="font-bold text-emerald-800">✅ ดอกครบส่วน (Complete flower)</div>
+          <p class="text-emerald-950 mt-1">มีครบทั้ง <strong>4 ชั้น</strong> (กลีบเลี้ยง + กลีบดอก + เกสรผู้ + เกสรเมีย)</p>
+          <p class="text-xs text-emerald-700 mt-1 font-semibold">ตัวอย่าง: ชบา, กุหลาบ, มะเขือ, ถั่วลันเตา</p>
+        </div>
+        <div class="bg-orange-50/70 border border-orange-200 rounded-2xl p-3.5">
+          <div class="font-bold text-orange-800">🧩 ดอกไม่ครบส่วน (Incomplete flower)</div>
+          <p class="text-orange-950 mt-1">ขาดไป <strong>อย่างน้อย 1 ชั้น</strong> จาก 4 ชั้น (เช่น ไม่มีกลีบดอก หรือมีเกสรเพศเดียว)</p>
+          <p class="text-xs text-orange-700 mt-1 font-semibold">ตัวอย่าง: ตำลึง, บวบ, ฟักทอง, ข้าวโพด, หน้าวัว</p>
+        </div>
+        <div class="bg-pink-50/70 border border-pink-200 rounded-2xl p-3.5">
+          <div class="font-bold text-pink-700">⚥ ดอกสมบูรณ์เพศ (Perfect / Bisexual)</div>
+          <p class="text-pink-950 mt-1">มีทั้ง <strong>เกสรผู้และเกสรเมีย</strong> ในดอกเดียวกัน (ไม่ต้องมีกลีบครบก็ได้)</p>
+          <p class="text-xs text-pink-700 mt-1 font-semibold">ตัวอย่าง: ชบา, กุหลาบ, มะละกอกระเทย, พริก</p>
+        </div>
+        <div class="bg-purple-50/70 border border-purple-200 rounded-2xl p-3.5">
+          <div class="font-bold text-purple-800">♂️/♀️ ดอกไม่สมบูรณ์เพศ (Imperfect / Unisexual)</div>
+          <p class="text-purple-950 mt-1">มี <strong>เกสรเพศเดียว</strong> ในแต่ละดอก (แยกเป็นดอกเพศผู้ และดอกเพศเมีย)</p>
+          <p class="text-xs text-purple-700 mt-1 font-semibold">ตัวอย่าง: ตำลึง, บวบ, แตงกวา, ข้าวโพด</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== TAB 2: M.5 GROWTH SUMMARY ==================== -->
+  <main id="tab-growth" class="hidden max-w-6xl mx-auto px-3 sm:px-4 py-4 space-y-4">
+    <section class="card-soft rounded-3xl p-4 sm:p-6">
+      <span class="text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">🌱 ชีววิทยา ม.5 (กระชับ อ่านง่ายบนมือถือ)</span>
+      <h2 class="text-xl font-bold text-emerald-950 mt-1 mb-4">โครงสร้างและการเจริญเติบโตของพืชดอก</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs sm:text-sm">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+          <h3 class="font-bold text-emerald-900 text-base mb-1.5">🌿 1. เนื้อเยื่อเจริญ (Meristem)</h3>
+          <p class="leading-relaxed">• <strong>Apical meristem:</strong> ปลายยอด/ปลายราก ➔ Primary growth (สูงขึ้น-รากลึก)</p>
+          <p class="leading-relaxed mt-1">• <strong>Intercalary meristem:</strong> เหนือข้อพืชใบเลี้ยงเดี่ยว (ไผ่/หญ้า ยืดปล้องเร็ว)</p>
+          <p class="leading-relaxed mt-1">• <strong>Lateral meristem:</strong> Vascular & Cork cambium ➔ Secondary growth (อ้วนขึ้น)</p>
+        </div>
+
+        <div class="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+          <h3 class="font-bold text-orange-900 text-base mb-1.5">🥕 2. ราก (4 โซนปลายราก)</h3>
+          <p class="leading-relaxed">① หมวกราก (Root cap) ➔ ② แบ่งเซลล์ (Cell division) ➔ ③ ยืดยาว (Elongation) ➔ ④ เปลี่ยนสภาพ (Maturation มีขนราก!)</p>
+          <p class="leading-relaxed mt-1">• <strong>Endodermis:</strong> มีแถบ <em>Casparian strip</em> คัดกรองน้ำเข้าไซเล็ม</p>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <h3 class="font-bold text-amber-900 text-base mb-1.5">🪵 3. ลำต้น (Monocot vs Dicot)</h3>
+          <p class="leading-relaxed">• <strong>Dicot:</strong> ท่อลำเลียงเรียงเป็นวง มี Vascular cambium สร้างวงปี (Secondary xylem)</p>
+          <p class="leading-relaxed mt-1">• <strong>Monocot:</strong> ท่อลำเลียงกระจายทั่ว ไม่มี Cambium ไม่มีวงปี</p>
+        </div>
+
+        <div class="bg-teal-50 border border-teal-200 rounded-2xl p-4">
+          <h3 class="font-bold text-teal-900 text-base mb-1.5">🍃 4. ใบ (Mesophyll & ปากใบ)</h3>
+          <p class="leading-relaxed">• <strong>Palisade:</strong> เรียงชิดด้านบน คลอโรพลาสต์แน่น | <strong>Spongy:</strong> เรียงหลวม มีช่องอากาศ</p>
+          <p class="leading-relaxed mt-1">• <strong>Guard cell:</strong> เซลล์ผิวเดียวที่มีคลอโรพลาสต์ คุมเปิด-ปิดปากใบ!</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== TAB 3: MINI-GAMES ==================== -->
+  <main id="tab-games" class="hidden max-w-5xl mx-auto px-3 sm:px-4 py-4 space-y-4">
+    <!-- Game Sub-tabs -->
+    <div class="flex gap-2 overflow-x-auto pb-1">
+      <button id="gm-1" onclick="switchGameTab(1)" class="font-cute shrink-0 px-4 py-2 rounded-xl text-xs font-bold bg-pink-500 text-white shadow-sm">
+        🖼️ เกม 1: ทายคำต่อภาพ 9 ช่อง
+      </button>
+      <button id="gm-2" onclick="switchGameTab(2)" class="font-cute shrink-0 px-4 py-2 rounded-xl text-xs font-bold bg-white text-emerald-800 border border-emerald-200">
+        ⚖️ เกม 2: ศึกแยกดอก 2 แกน
+      </button>
+      <button id="gm-3" onclick="switchGameTab(3)" class="font-cute shrink-0 px-4 py-2 rounded-xl text-xs font-bold bg-white text-purple-800 border border-purple-200">
+        🖐️ เกม 3: ลากนิ้วเรียงชั้นดอกไม้
+      </button>
+    </div>
+
+    <!-- GAME 1: 9-TILE PICTURE-WORD -->
+    <section id="gp-1" class="card-soft rounded-3xl p-4 sm:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-emerald-950">ทายคำต่อภาพ (เปิดได้สูงสุด 4 แผ่น!)</h2>
+          <p class="text-xs text-rose-600 font-bold">ยิ่งเปิดน้อย & ตอบเร็ว คะแนนยิ่งพุ่ง!</p>
+        </div>
+        <div class="flex gap-2 text-xs font-bold">
+          <span class="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-1 rounded-xl" id="g1-timer">⏱️ 25s</span>
+          <span class="bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1 rounded-xl" id="g1-opens">เหลือ 4 แผ่น</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+        <div class="md:col-span-5">
+          <div class="relative bg-white rounded-2xl border-2 border-pink-200 p-3 aspect-square max-w-[270px] mx-auto overflow-hidden flex items-center justify-center">
+            <div id="g1-svg" class="w-full h-full"></div>
+            <div id="g1-tiles" class="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-1 p-1.5 bg-pink-100/30"></div>
+          </div>
+        </div>
+        <div class="md:col-span-7 space-y-3">
+          <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 text-xs sm:text-sm font-bold text-purple-950" id="g1-clue"></div>
+          <div id="g1-opts" class="grid grid-cols-1 gap-2"></div>
+          <div id="g1-fb" class="hidden rounded-xl p-3 text-xs sm:text-sm"></div>
+          <div class="flex justify-end gap-2">
+            <button onclick="startG1()" class="px-3 py-1.5 rounded-xl bg-stone-100 text-xs font-bold">🔄 รีเซ็ต</button>
+            <button id="g1-next" onclick="nextG1()" class="hidden px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold">ข้อถัดไป ➜</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME 2: 2-AXIS FLOWER MATRIX -->
+    <section id="gp-2" class="hidden card-soft rounded-3xl p-4 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg sm:text-xl font-bold text-emerald-950">ศึกแยกดอก 2 แกน (ต้องถูกทั้งคู่!)</h2>
+        <span id="g2-streak" class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">Combo x0 🔥</span>
+      </div>
+
+      <div class="bg-gradient-to-r from-amber-50 to-pink-50 border border-pink-200 rounded-2xl p-4 text-center mb-4">
+        <div id="g2-emoji" class="text-4xl mb-1"></div>
+        <h3 id="g2-plant" class="text-lg font-bold text-emerald-950"></h3>
+        <p id="g2-desc" class="text-xs sm:text-sm text-emerald-800 mt-1"></p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <div class="bg-white rounded-2xl border border-emerald-200 p-3">
+          <div class="text-xs font-bold text-emerald-900 mb-2 text-center">เกณฑ์ 1: จำนวนชั้น (4 ชั้น)</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="g2-c1" onclick="pickG2(1,'complete')" class="py-2.5 rounded-xl border-2 border-emerald-200 text-xs font-bold">✅ ครบส่วน</button>
+            <button id="g2-c2" onclick="pickG2(1,'incomplete')" class="py-2.5 rounded-xl border-2 border-orange-200 text-xs font-bold">🧩 ไม่ครบส่วน</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-pink-200 p-3">
+          <div class="text-xs font-bold text-pink-900 mb-2 text-center">เกณฑ์ 2: เพศของเกสร</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="g2-p1" onclick="pickG2(2,'perfect')" class="py-2.5 rounded-xl border-2 border-pink-200 text-xs font-bold">⚥ สมบูรณ์เพศ</button>
+            <button id="g2-p2" onclick="pickG2(2,'imperfect')" class="py-2.5 rounded-xl border-2 border-purple-200 text-xs font-bold">♂️/♀️ ไม่สมบูรณ์เพศ</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <button id="g2-sub" onclick="checkG2()" class="font-cute px-6 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-bold shadow">ตรวจคำตอบ 2 แกน ✨</button>
+      </div>
+      <div id="g2-fb" class="hidden mt-3 rounded-xl p-3 text-xs sm:text-sm text-center"></div>
+      <div class="text-center mt-3">
+        <button id="g2-next" onclick="nextG2()" class="hidden font-cute px-5 py-2 rounded-xl bg-pink-500 text-white text-xs font-bold">ข้อถัดไป ➜</button>
+      </div>
+    </section>
+
+    <!-- GAME 3: TOUCH & MOUSE DRAG-TO-ORDER LAYERS -->
+    <section id="gp-3" class="hidden card-soft rounded-3xl p-4 sm:p-6">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-emerald-950">🖐️ ลากนิ้ว/เมาส์เรียงชั้นดอกไม้!</h2>
+          <p class="text-xs text-purple-700 font-semibold" id="g3-prompt"></p>
+        </div>
+        <button onclick="initG3()" class="px-3 py-1.5 rounded-xl bg-stone-100 text-xs font-bold">🔄 สลับใหม่</button>
+      </div>
+
+      <!-- Drop Target Slots 1..4 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4" id="g3-slots"></div>
+
+      <!-- Draggable Source Cards -->
+      <div class="bg-purple-50/70 rounded-2xl border border-purple-200 p-3">
+        <div class="text-[11px] font-bold text-purple-800 mb-2">ลากป้ายด้านล่างไปวางตามลำดับ (หรือแตะป้าย ➔ แตะช่อง):</div>
+        <div id="g3-pieces" class="grid grid-cols-2 gap-2"></div>
+      </div>
+
+      <div id="g3-fb" class="hidden mt-3 rounded-xl p-3 text-xs sm:text-sm text-center"></div>
+      <div class="text-center mt-3">
+        <button id="g3-next" onclick="nextG3()" class="hidden font-cute px-5 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold">โจทย์ถัดไป ➜</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ==================== CORE DATA ====================
+    const WHORLS = [
+      {
+        layer: 1,
+        badge: 'ชั้นที่ 1 (นอกสุด)',
+        name: 'กลีบเลี้ยง (Calyx)',
+        eng: 'Sepal + ริ้วประดับ (Epicalyx)',
+        icon: '🥬',
+        cls: 'bg-emerald-50 border-emerald-300 text-emerald-950',
+        badgeCls: 'bg-emerald-200 text-emerald-900',
+        sub: 'กลีบเลี้ยงแต่ละกลีบ (Sepal) บางชนิดมีริ้วประดับช่วยเสริม เช่น ดอกชบา',
+        func: 'ห่อหุ้มปกป้องดอกตูมจากแมลง สัตว์กัดแทะ หรือการสูญเสียน้ำ และบางชนิดช่วยสังเคราะห์ด้วยแสง',
+        tip: 'เป็นวงนอกสุดของดอกไม้ ช่วยปกป้องชั้นในตั้งแต่ยังเป็นดอกตูม'
+      },
+      {
+        layer: 2,
+        badge: 'ชั้นที่ 2',
+        name: 'กลีบดอก (Corolla)',
+        eng: 'Petal • สีสัน & น้ำหวาน',
+        icon: '🌺',
+        cls: 'bg-pink-50 border-pink-300 text-pink-950',
+        badgeCls: 'bg-pink-200 text-pink-900',
+        sub: 'กลีบดอกแต่ละกลีบ (Petal) มักมีสีสัน กลิ่น และต่อมน้ำหวาน',
+        func: 'ดึงดูดแมลง นก หรือสัตว์ผสมเกสรให้เข้ามาช่วยถ่ายละอองเรณู และช่วยป้องกันอวัยวะสืบพันธุ์ชั้นใน',
+        tip: 'พืชที่ผสมเกสรด้วยลม (เช่น ข้าว ข้าวโพด) มักไม่มีกลีบดอกสวยงาม จึงมักเป็น “ดอกไม่ครบส่วน”'
+      },
+      {
+        layer: 3,
+        badge: 'ชั้นที่ 3',
+        name: 'เกสรเพศผู้ (Androecium)',
+        eng: 'Anther & Filament',
+        icon: '💛',
+        cls: 'bg-amber-50 border-amber-300 text-amber-950',
+        badgeCls: 'bg-amber-200 text-amber-900',
+        sub: 'อับเรณู (Anther) และ ก้านชูอับเรณู (Filament)',
+        func: 'สร้างและเก็บรักษา ละอองเรณู (Pollen grain) ซึ่งภายในมีเซลล์สืบพันธุ์เพศผู้',
+        tip: 'อับเรณู (Anther) สร้างละอองเรณู ส่วนยอดเกสรเมีย (Stigma) เป็นตัวรับละอองเรณู อย่าสลับกัน!'
+      },
+      {
+        layer: 4,
+        badge: 'ชั้นที่ 4 (ในสุด)',
+        name: 'เกสรเพศเมีย (Gynoecium / Pistil)',
+        eng: 'Stigma, Style, Ovary & Ovule',
+        icon: '💜',
+        cls: 'bg-purple-50 border-purple-300 text-purple-950',
+        badgeCls: 'bg-purple-200 text-purple-900',
+        sub: 'ยอดเกสรตัวเมีย (Stigma), ก้านเกสรตัวเมีย (Style) และ รังไข่ (Ovary ภายในมีออวุล Ovule)',
+        func: 'รับละอองเรณู สร้างเซลล์ไข่ภายในออวุล เป็นแหล่งเกิดการปฏิสนธิ ➔ หลังปฏิสนธิ รังไข่เจริญเป็นผล ส่วนออวุลเจริญเป็นเมล็ด',
+        tip: '1 รังไข่มีหลายออวุล = 1 ผลมีหลายเมล็ด (เช่น แตงโม) | 1 ออวุล = 1 เมล็ด (เช่น มะม่วง)'
+      }
+    ];
+
+    let score = 0;
+    function addScore(n) {
+      score += n;
+      document.getElementById('score-display').textContent = score;
+    }
+
+    function showToast(msg, ok = true) {
+      const box = document.getElementById('toast-box');
+      box.textContent = msg;
+      box.className = `fixed top-28 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold shadow-lg border-2 pointer-events-none whitespace-nowrap ${
+        ok ? 'bg-emerald-500 text-white border-emerald-300' : 'bg-rose-500 text-white border-rose-300'
+      }`;
+      box.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => box.classList.add('hidden'), 1800);
+    }
+
+    // ==================== NAVIGATION ====================
+    function switchMainTab(tab) {
+      ['flower', 'growth', 'games'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById(`nav-${t}`);
+        if (t === tab) {
+          btn.className = 'font-cute shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-pink-500 text-white shadow-sm';
+        } else {
+          btn.className = 'font-cute shrink-0 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-50 text-emerald-800 border border-emerald-200';
+        }
+      });
+    }
+
+    // ==================== PAGE 1: EXPLODE vs DRAG ====================
+    function setFlowerMode(mode) {
+      const expBox = document.getElementById('mode-explode-box');
+      const drgBox = document.getElementById('mode-drag-box');
+      const bExp = document.getElementById('btn-stage-explode');
+      const bDrg = document.getElementById('btn-stage-drag');
+
+      if (mode === 'explode') {
+        expBox.classList.remove('hidden');
+        drgBox.classList.add('hidden');
+        bExp.className = 'font-cute px-3 py-2 rounded-xl text-xs font-bold bg-pink-500 text-white shadow-sm';
+        bDrg.className = 'font-cute px-3 py-2 rounded-xl text-xs font-bold text-emerald-800';
+      } else {
+        expBox.classList.add('hidden');
+        drgBox.classList.remove('hidden');
+        bDrg.className = 'font-cute px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white shadow-sm';
+        bExp.className = 'font-cute px-3 py-2 rounded-xl text-xs font-bold text-emerald-800';
+        initDragAssemble();
+      }
+    }
+
+    function renderExplodedList(visibleSet = new Set([1, 2, 3, 4]), animate = false) {
+      const box = document.getElementById('exploded-list');
+      box.innerHTML = '';
+      // Show from Layer 4 (top/innermost) down to Layer 1 (outermost)
+      [4, 3, 2, 1].forEach((layerNum, idx) => {
+        const w = WHORLS.find(x => x.layer === layerNum);
+        const card = document.createElement('button');
+        const isVisible = visibleSet.has(layerNum);
+        card.onclick = () => inspectWhorl(layerNum);
+        card.className = `w-full text-left rounded-2xl p-3 border-2 flex items-center gap-3 transition-transform active:scale-98 ${w.cls} ${
+          isVisible ? (animate ? 'warp-in' : '') : 'opacity-35'
+        }`;
+        if (animate && isVisible) card.style.animationDelay = `${(3 - idx) * 90}ms`;
+        card.innerHTML = `
+          <div class="w-11 h-11 rounded-xl bg-white/90 flex items-center justify-center text-2xl shrink-0 shadow-sm">${w.icon}</div>
+          <div class="flex-1 min-w-0">
+            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${w.badgeCls}">${w.badge}</span>
+            <h4 class="font-bold text-sm sm:text-base truncate">${w.name}</h4>
+            <p class="text-[11px] opacity-80 truncate">${w.sub}</p>
+          </div>
+          <span class="text-xs font-bold shrink-0">อ่าน ➜</span>
+        `;
+        box.appendChild(card);
+      });
+    }
+
+    function warpExplodeAll() {
+      renderExplodedList(new Set([1, 2, 3, 4]), true);
+      showToast('🪄 วาร์ปแยกครบทั้ง 4 ชั้นแล้ว!');
+    }
+
+    function summonSingle(num) {
+      renderExplodedList(new Set([num]), true);
+      inspectWhorl(num);
+    }
+
+    function inspectWhorl(num) {
+      const w = WHORLS.find(x => x.layer === num);
+      const wrap = document.getElementById('whorl-modal-wrapper');
+      wrap.classList.remove('hidden');
+      wrap.classList.add('flex');
+
+      document.getElementById('ins-empty').classList.add('hidden');
+      document.getElementById('ins-body').classList.remove('hidden');
+
+      document.getElementById('ins-icon').textContent = w.icon;
+      document.getElementById('ins-icon').className = `w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border-2 ${w.cls}`;
+      document.getElementById('ins-layer').textContent = w.badge;
+      document.getElementById('ins-layer').className = `inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-0.5 ${w.badgeCls}`;
+      document.getElementById('ins-title').textContent = w.name;
+      document.getElementById('ins-eng').textContent = w.eng;
+      document.getElementById('ins-sub').textContent = w.sub;
+      document.getElementById('ins-func').textContent = w.func;
+      document.getElementById('ins-tip').textContent = w.tip;
+    }
+
+    function closeMobileInspector(e) {
+      if (window.innerWidth < 1024 && e.target.id === 'whorl-modal-wrapper') {
+        forceCloseMobileInspector();
+      }
+    }
+
+    function forceCloseMobileInspector() {
+      const wrap = document.getElementById('whorl-modal-wrapper');
+      wrap.classList.add('hidden');
+      wrap.classList.remove('flex');
+    }
+
+    // ==================== UNIFIED POINTER DRAG SYSTEM (TOUCH + MOUSE) ====================
+    function attachPointerDrag({ containerEl, pieceSelector, slotSelector, onMatch, onMismatch }) {
+      let selectedPiece = null;
+
+      function clearSelection() {
+        if (selectedPiece) {
+          selectedPiece.classList.remove('ring-4', 'ring-pink-400');
+          selectedPiece = null;
+        }
+      }
+
+      // Tap-to-place support on slots
+      containerEl.querySelectorAll(slotSelector).forEach(slot => {
+        slot.onclick = () => {
+          if (!selectedPiece || slot.dataset.filled === 'true') return;
+          const pVal = selectedPiece.dataset.val;
+          const sVal = slot.dataset.expect;
+          if (pVal === sVal) {
+            onMatch(selectedPiece, slot);
+          } else {
+            onMismatch(slot);
+          }
+          clearSelection();
+        };
+      });
+
+      containerEl.querySelectorAll(pieceSelector).forEach(piece => {
+        piece.onpointerdown = (e) => {
+          if (piece.dataset.placed === 'true') return;
+          e.preventDefault();
+
+          const startX = e.clientX;
+          const startY = e.clientY;
+          let isDragging = false;
+          let ghost = null;
+          let currentHoverSlot = null;
+
+          const rect = piece.getBoundingClientRect();
+          const offsetX = e.clientX - rect.left;
+          const offsetY = e.clientY - rect.top;
+
+          function onMove(ev) {
+            const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
+            if (!isDragging && dist > 6) {
+              isDragging = true;
+              clearSelection();
+              ghost = piece.cloneNode(true);
+              ghost.style.position = 'fixed';
+              ghost.style.left = '0px';
+              ghost.style.top = '0px';
+              ghost.style.width = rect.width + 'px';
+              ghost.style.zIndex = '9999';
+              ghost.style.pointerEvents = 'none';
+              ghost.style.opacity = '0.95';
+              ghost.style.transform = `translate3d(${ev.clientX - offsetX}px, ${ev.clientY - offsetY}px, 0) scale(1.05)`;
+              ghost.classList.add('shadow-2xl', 'ring-2', 'ring-pink-400');
+              document.body.appendChild(ghost);
+              piece.style.opacity = '0.3';
+            }
+
+            if (isDragging && ghost) {
+              ghost.style.transform = `translate3d(${ev.clientX - offsetX}px, ${ev.clientY - offsetY}px, 0) scale(1.05)`;
+
+              // Hit test drop slots
+              let foundSlot = null;
+              containerEl.querySelectorAll(slotSelector).forEach(slot => {
+                slot.classList.remove('ring-4', 'ring-pink-400', 'scale-[1.02]');
+                if (slot.dataset.filled === 'true') return;
+                const sr = slot.getBoundingClientRect();
+                if (ev.clientX >= sr.left && ev.clientX <= sr.right && ev.clientY >= sr.top && ev.clientY <= sr.bottom) {
+                  foundSlot = slot;
+                }
+              });
+              currentHoverSlot = foundSlot;
+              if (currentHoverSlot) {
+                currentHoverSlot.classList.add('ring-4', 'ring-pink-400', 'scale-[1.02]');
+              }
+            }
+          }
+
+          function onUp() {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onUp);
+
+            if (ghost) {
+              ghost.remove();
+              ghost = null;
+            }
+            if (piece.dataset.placed !== 'true') {
+              piece.style.opacity = '1';
+            }
+
+            containerEl.querySelectorAll(slotSelector).forEach(s => s.classList.remove('ring-4', 'ring-pink-400', 'scale-[1.02]'));
+
+            if (!isDragging) {
+              // Treat as tap-select!
+              if (selectedPiece === piece) {
+                clearSelection();
+              } else {
+                clearSelection();
+                selectedPiece = piece;
+                piece.classList.add('ring-4', 'ring-pink-400');
+              }
+              return;
+            }
+
+            if (currentHoverSlot) {
+              if (piece.dataset.val === currentHoverSlot.dataset.expect) {
+                onMatch(piece, currentHoverSlot);
+              } else {
+                onMismatch(currentHoverSlot);
+              }
+            }
+          }
+
+          window.addEventListener('pointermove', onMove);
+          window.addEventListener('pointerup', onUp);
+          window.addEventListener('pointercancel', onUp);
+        };
+      });
+    }
+
+    // ==================== PAGE 1 DRAG-TO-ASSEMBLE LOGIC ====================
+    let dragAssembledCount = 0;
+
+    function initDragAssemble() {
+      dragAssembledCount = 0;
+      document.getElementById('drag-progress-label').textContent = 'ประกอบแล้ว 0 / 4 ชั้น';
+      [1, 2, 3, 4].forEach(n => document.getElementById(`svg-asm-${n}`).classList.add('hidden'));
+
+      // Render 4 Drop Slots (Outside 1 -> Inside 4)
+      const slotsBox = document.getElementById('drop-slots-container');
+      slotsBox.innerHTML = [1, 2, 3, 4].map(n => `
+        <div data-slot data-expect="${n}" data-filled="false"
+          class="rounded-xl border-2 border-dashed border-emerald-300 bg-white/80 p-2.5 flex items-center justify-between transition-all min-h-[50px]">
+          <span class="text-xs font-bold text-emerald-800">
+            ${n === 1 ? 'ชั้นที่ 1 (นอกสุด)' : n === 4 ? 'ชั้นที่ 4 (ในสุด)' : `ชั้นที่ ${n}`}
+          </span>
+          <span class="slot-hint text-[11px] text-stone-400">วางชิ้นส่วนที่นี่</span>
+        </div>
+      `).join('');
+
+      // Render Shuffled Draggable Pieces
+      const shuffled = [...WHORLS].sort(() => Math.random() - 0.5);
+      const tray = document.getElementById('drag-tray');
+      tray.innerHTML = shuffled.map(w => `
+        <div data-piece data-val="${w.layer}" data-placed="false"
+          class="drag-piece rounded-xl border-2 p-2.5 flex items-center gap-2 shadow-sm ${w.cls}">
+          <span class="text-xl shrink-0">${w.icon}</span>
+          <div class="min-w-0">
+            <div class="font-bold text-xs truncate">${w.name}</div>
+            <div class="text-[10px] opacity-75 truncate">${w.eng.split('•')[0]}</div>
+          </div>
+        </div>
+      `).join('');
+
+      const dragContainer = document.getElementById('mode-drag-box');
+      attachPointerDrag({
+        containerEl: dragContainer,
+        pieceSelector: '[data-piece]',
+        slotSelector: '[data-slot]',
+        onMatch: (piece, slot) => {
+          const layerNum = parseInt(piece.dataset.val, 10);
+          const w = WHORLS.find(x => x.layer === layerNum);
+          piece.dataset.placed = 'true';
+          piece.style.opacity = '0.35';
+          piece.classList.add('pointer-events-none');
+
+          slot.dataset.filled = 'true';
+          slot.className = `rounded-xl border-2 p-2.5 flex items-center justify-between pop-snap ${w.cls}`;
+          slot.innerHTML = `
+            <span class="text-xs font-bold">${w.icon} ${w.badge}: ${w.name}</span>
+            <span class="text-xs font-bold text-emerald-700">✓</span>
+          `;
+
+          const svgLayer = document.getElementById(`svg-asm-${layerNum}`);
+          svgLayer.classList.remove('hidden');
+          svgLayer.classList.add('pop-snap');
+
+          dragAssembledCount++;
+          addScore(10);
+          document.getElementById('drag-progress-label').textContent = `ประกอบแล้ว ${dragAssembledCount} / 4 ชั้น`;
+
+          if (dragAssembledCount === 4) {
+            showToast('🌺 เยี่ยมมาก! ประกอบดอกชบาครบ 4 ชั้นแล้ว (+10 ⭐)');
+          } else {
+            showToast(`✨ ถูกต้อง! ${w.name} (+10 ⭐)`);
+          }
+        },
+        onMismatch: (slot) => {
+          slot.classList.add('shake-soft', 'border-rose-400', 'bg-rose-50');
+          setTimeout(() => slot.classList.remove('shake-soft', 'border-rose-400', 'bg-rose-50'), 450);
+          showToast('อุ๊ย! ชั้นนี้ยังไม่ใช่น้า ลองไล่จากนอกสุด ➔ ในสุดดูสิ', false);
+        }
+      });
+    }
+
+    // ==================== SANDBOX ====================
+    function updateSandbox() {
+      const w1 = document.getElementById('sb-1').checked;
+      const w2 = document.getElementById('sb-2').checked;
+      const w3 = document.getElementById('sb-3').checked;
+      const w4 = document.getElementById('sb-4').checked;
+
+      const cEl = document.getElementById('sb-complete');
+      const pEl = document.getElementById('sb-perfect');
+      const exEl = document.getElementById('sb-ex');
+
+      if (w1 && w2 && w3 && w4) {
+        cEl.textContent = '✅ ดอกครบส่วน';
+        cEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800';
+      } else {
+        cEl.textContent = '🧩 ดอกไม่ครบส่วน';
+        cEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800';
+      }
+
+      if (w3 && w4) {
+        pEl.textContent = '⚥ ดอกสมบูรณ์เพศ';
+        pEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-pink-100 text-pink-800';
+      } else if (w3 || w4) {
+        pEl.textContent = '♂️/♀️ ไม่สมบูรณ์เพศ';
+        pEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800';
+      } else {
+        pEl.textContent = '🚫 ไม่มีเกสร (เป็นหมัน)';
+        pEl.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-stone-200 text-stone-700';
+      }
+
+      if (w1 && w2 && w3 && w4) exEl.textContent = 'เช่น ชบา, กุหลาบ, มะเขือ, ถั่วลันเตา';
+      else if (w3 && w4) exEl.textContent = 'ไม่ครบส่วน แต่สมบูรณ์เพศ! เช่น ดอกข้าว, หน้าวัวบางพันธุ์';
+      else if (w3 || w4) exEl.textContent = 'เช่น ตำลึง, บวบ, ฟักทอง, แตงกวา, ข้าวโพด';
+      else exEl.textContent = 'ดอกไม้ไม่มีอวัยวะสืบพันธุ์';
+    }
+
+    // ==================== GAMES SECTION ====================
+    function switchGameTab(n) {
+      [1, 2, 3].forEach(i => {
+        document.getElementById(`gp-${i}`).classList.toggle('hidden', i !== n);
+        const btn = document.getElementById(`gm-${i}`);
+        btn.className = i === n
+          ? 'font-cute shrink-0 px-4 py-2 rounded-xl text-xs font-bold bg-pink-500 text-white shadow-sm'
+          : 'font-cute shrink-0 px-4 py-2 rounded-xl text-xs font-bold bg-white text-emerald-800 border border-emerald-200';
+      });
+      if (n === 1) startG1();
+      if (n === 2) initG2();
+      if (n === 3) initG3();
+    }
+
+    // GAME 1: 9-TILE TIMED
+    const G1_DATA = [
+      {
+        clue: 'ส่วนที่สร้างและเก็บรักษา “ละอองเรณู (Pollen grain)” อยู่ชั้นที่ 3',
+        opts: ['อับเรณู (Anther)', 'ยอดเกสรตัวเมีย (Stigma)', 'ออวุล (Ovule)', 'กลีบเลี้ยง (Sepal)'],
+        ans: 0,
+        exp: 'อับเรณู (Anther) สร้างละอองเรณู ส่วน Stigma เป็นตัวรับละอองเรณู!',
+        svg: `<svg viewBox="0 0 180 180" class="w-full h-full"><rect width="180" height="180" fill="#FFFBEB"/><path d="M90 155 L90 65" stroke="#D97706" stroke-width="7"/><ellipse cx="90" cy="54" rx="34" ry="18" fill="#FACC15" stroke="#92400E" stroke-width="3"/><text x="90" y="120" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400E">สร้าง Pollen grain</text></svg>`
+      },
+      {
+        clue: 'ส่วนที่อยู่ภายในรังไข่ หลังปฏิสนธิแล้วจะเจริญไปเป็น “เมล็ด (Seed)”',
+        opts: ['รังไข่ (Ovary)', 'ออวุล (Ovule)', 'ก้านเกสรเมีย (Style)', 'ต่อมน้ำหวาน'],
+        ans: 1,
+        exp: 'รังไข่ ➔ ผล ส่วน ออวุล ➔ เมล็ด!',
+        svg: `<svg viewBox="0 0 180 180" class="w-full h-full"><rect width="180" height="180" fill="#FAF5FF"/><path d="M55 150 Q48 88 90 74 Q132 88 125 150 Z" fill="#FEF08A" stroke="#7E22CE" stroke-width="3"/><circle cx="90" cy="116" r="20" fill="#F472B6" stroke="#9D174D" stroke-width="2"/><text x="90" y="166" text-anchor="middle" font-size="11" font-weight="bold" fill="#7E22CE">เจริญเป็นเมล็ด</text></svg>`
+      },
+      {
+        clue: 'ภาพตัดขวางที่มีแฉก Xylem อยู่ตรงกลาง ไม่มี Pith และมี Endodermis ล้อมรอบ',
+        opts: ['รากใบเลี้ยงเดี่ยว', 'รากใบเลี้ยงคู่ (Dicot Root)', 'ลำต้นใบเลี้ยงคู่', 'ลำต้นใบเลี้ยงเดี่ยว'],
+        ans: 1,
+        exp: 'ราก Dicot มีแฉก Xylem ตรงกลาง Stele และไม่มี Pith!',
+        svg: `<svg viewBox="0 0 180 180" class="w-full h-full"><circle cx="90" cy="90" r="76" fill="#FEF3C7" stroke="#D97706" stroke-width="3"/><circle cx="90" cy="90" r="36" fill="#FDE68A" stroke="#B45309" stroke-width="2" stroke-dasharray="4 2"/><path d="M90 60 L98 82 L120 90 L98 98 L90 120 L82 98 L60 90 L82 82 Z" fill="#EF4444"/></svg>`
+      }
+    ];
+    let g1i = 0, g1Left = 4, g1Sec = 25, g1Tid = null, g1End = false;
+
+    function startG1() {
+      clearInterval(g1Tid);
+      g1Left = 4; g1Sec = 25; g1End = false;
+      const q = G1_DATA[g1i];
+      document.getElementById('g1-timer').textContent = `⏱️ ${g1Sec}s`;
+      document.getElementById('g1-opens').textContent = `เหลือ ${g1Left} แผ่น`;
+      document.getElementById('g1-svg').innerHTML = q.svg;
+      document.getElementById('g1-clue').textContent = q.clue;
+      document.getElementById('g1-fb').classList.add('hidden');
+      document.getElementById('g1-next').classList.add('hidden');
+
+      const tBox = document.getElementById('g1-tiles');
+      tBox.innerHTML = '';
+      const cols = ['bg-pink-400','bg-purple-400','bg-amber-400','bg-emerald-400','bg-sky-400','bg-rose-400','bg-teal-400','bg-indigo-400','bg-orange-400'];
+      for (let i = 0; i < 9; i++) {
+        const b = document.createElement('button');
+        b.className = `tile-cover ${cols[i]} rounded-lg font-cute text-white font-bold text-sm border border-white/70`;
+        b.textContent = i + 1;
+        b.onclick = () => {
+          if (g1End || b.classList.contains('revealed')) return;
+          if (g1Left <= 0) { showToast('เปิดครบ 4 แผ่นแล้ว รีบตอบเลย!', false); return; }
+          b.classList.add('revealed');
+          g1Left--;
+          document.getElementById('g1-opens').textContent = `เหลือ ${g1Left} แผ่น`;
+        };
+        tBox.appendChild(b);
+      }
+
+      const oBox = document.getElementById('g1-opts');
+      oBox.innerHTML = '';
+      q.opts.forEach((opt, idx) => {
+        const b = document.createElement('button');
+        b.className = 'text-left px-3.5 py-2.5 rounded-xl bg-white border-2 border-emerald-100 hover:border-pink-400 text-xs sm:text-sm font-semibold';
+        b.textContent = `${['ก.','ข.','ค.','ง.'][idx]} ${opt}`;
+        b.onclick = () => endG1(idx === q.ans, b);
+        oBox.appendChild(b);
+      });
+
+      g1Tid = setInterval(() => {
+        g1Sec--;
+        document.getElementById('g1-timer').textContent = `⏱️ ${g1Sec}s`;
+        if (g1Sec <= 0) endG1(false, null, true);
+      }, 1000);
+    }
+
+    function endG1(win, btn, timeout = false) {
+      if (g1End) return;
+      g1End = true;
+      clearInterval(g1Tid);
+      document.querySelectorAll('#g1-tiles .tile-cover').forEach(t => t.classList.add('revealed'));
+      const q = G1_DATA[g1i];
+      const fb = document.getElementById('g1-fb');
+      fb.classList.remove('hidden');
+      document.getElementById('g1-next').classList.remove('hidden');
+      if (win) {
+        const pts = 10 + g1Left * 5;
+        addScore(pts);
+        btn.classList.add('bg-emerald-100', 'border-emerald-500');
+        fb.className = 'rounded-xl p-3 text-xs sm:text-sm bg-emerald-100 text-emerald-950 font-medium';
+        fb.innerHTML = `🎉 <strong>ถูกต้อง! (+${pts} ⭐)</strong> ${q.exp}`;
+      } else {
+        if (btn) btn.classList.add('bg-rose-100', 'border-rose-400');
+        fb.className = 'rounded-xl p-3 text-xs sm:text-sm bg-rose-100 text-rose-950 font-medium';
+        fb.innerHTML = `${timeout ? '⏰ <strong>หมดเวลา!</strong>' : '😅 <strong>โดนหลอกแล้ว!</strong>'} เฉลย: <u>${q.opts[q.ans]}</u> — ${q.exp}`;
+      }
+    }
+    function nextG1() { g1i = (g1i + 1) % G1_DATA.length; startG1(); }
+
+    // GAME 2: 2-AXIS MATRIX
+    const G2_DATA = [
+      { emoji: '🌺', plant: 'ดอกชบา', desc: 'มีกลีบเลี้ยง กลีบดอก เกสรผู้ และเกสรเมียครบในดอกเดียว', a1: 'complete', a2: 'perfect', exp: 'มีครบ 4 ชั้น (ครบส่วน) และมีเกสร 2 เพศ (สมบูรณ์เพศ)' },
+      { emoji: '🌾', plant: 'ดอกข้าว', desc: 'ไม่มีกลีบเลี้ยง-กลีบดอกแท้ๆ แต่มีเกสรผู้และเกสรเมียอยู่ในดอกเดียวกัน', a1: 'incomplete', a2: 'perfect', exp: 'ขาดกลีบเลี้ยง-กลีบดอก (ไม่ครบส่วน) แต่มีเกสร 2 เพศ (สมบูรณ์เพศ)!' },
+      { emoji: '🎃', plant: 'ดอกฟักทอง (ตัวเมีย)', desc: 'มีกลีบเลี้ยง กลีบดอก และเกสรเมียเท่านั้น ไม่มีเกสรผู้', a1: 'incomplete', a2: 'imperfect', exp: 'ขาดเกสรผู้ (ไม่ครบส่วน) และมีเพศเดียว (ไม่สมบูรณ์เพศ)' },
+      { emoji: '🍈', plant: 'ดอกมะละกอกระเทย', desc: 'มีครบ 4 ชั้นและมีทั้งเกสรเพศผู้-เพศเมียในดอกเดียว', a1: 'complete', a2: 'perfect', exp: 'ครบทั้ง 4 ชั้นและมี 2 เพศในดอกเดียว!' },
+      { emoji: '🌽', plant: 'ดอกข้าวโพด', desc: 'ไม่มีกลีบดอกสวยงาม และแยกดอกตัวผู้ไว้ปลายยอด ดอกตัวเมียไว้ที่ฝัก', a1: 'incomplete', a2: 'imperfect', exp: 'ขาดกลีบดอก + แยกเพศ = ไม่ครบส่วน และ ไม่สมบูรณ์เพศ!' }
+    ];
+    let g2i = 0, g2a1 = null, g2a2 = null, g2str = 0, g2End = false;
+
+    function initG2() {
+      g2a1 = null; g2a2 = null; g2End = false;
+      const d = G2_DATA[g2i];
+      document.getElementById('g2-emoji').textContent = d.emoji;
+      document.getElementById('g2-plant').textContent = d.plant;
+      document.getElementById('g2-desc').textContent = d.desc;
+      document.getElementById('g2-fb').classList.add('hidden');
+      document.getElementById('g2-next').classList.add('hidden');
+      document.getElementById('g2-sub').classList.remove('hidden');
+      ['c1','c2','p1','p2'].forEach(id => {
+        document.getElementById(`g2-${id}`).className = 'py-2.5 rounded-xl border-2 border-stone-200 text-xs font-bold bg-white';
+      });
+    }
+
+    function pickG2(ax, val) {
+      if (g2End) return;
+      if (ax === 1) {
+        g2a1 = val;
+        document.getElementById('g2-c1').className = `py-2.5 rounded-xl border-2 text-xs font-bold ${val === 'complete' ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white border-stone-200'}`;
+        document.getElementById('g2-c2').className = `py-2.5 rounded-xl border-2 text-xs font-bold ${val === 'incomplete' ? 'bg-orange-500 text-white border-orange-600' : 'bg-white border-stone-200'}`;
+      } else {
+        g2a2 = val;
+        document.getElementById('g2-p1').className = `py-2.5 rounded-xl border-2 text-xs font-bold ${val === 'perfect' ? 'bg-pink-500 text-white border-pink-600' : 'bg-white border-stone-200'}`;
+        document.getElementById('g2-p2').className = `py-2.5 rounded-xl border-2 text-xs font-bold ${val === 'imperfect' ? 'bg-purple-600 text-white border-purple-700' : 'bg-white border-stone-200'}`;
+      }
+    }
+
+    function checkG2() {
+      if (!g2a1 || !g2a2) { showToast('เลือกให้ครบทั้ง 2 เกณฑ์ก่อนนะ!', false); return; }
+      g2End = true;
+      const d = G2_DATA[g2i];
+      const fb = document.getElementById('g2-fb');
+      fb.classList.remove('hidden');
+      document.getElementById('g2-sub').classList.add('hidden');
+      document.getElementById('g2-next').classList.remove('hidden');
+      if (g2a1 === d.a1 && g2a2 === d.a2) {
+        g2str++;
+        const pts = 15 + g2str * 5;
+        addScore(pts);
+        fb.className = 'mt-3 rounded-xl p-3 text-xs sm:text-sm text-center bg-emerald-100 text-emerald-950 font-medium';
+        fb.innerHTML = `🔥 <strong>ถูกทั้ง 2 แกน! (+${pts} ⭐)</strong> ${d.exp}`;
+      } else {
+        g2str = 0;
+        fb.className = 'mt-3 rounded-xl p-3 text-xs sm:text-sm text-center bg-rose-100 text-rose-950 font-medium';
+        fb.innerHTML = `💥 <strong>พลาดจุดลวง!</strong> ${d.exp}`;
+      }
+      document.getElementById('g2-streak').textContent = `Combo x${g2str} 🔥`;
+    }
+    function nextG2() { g2i = (g2i + 1) % G2_DATA.length; initG2(); }
+
+    // GAME 3: DRAG-TO-ORDER LAYERS
+    const G3_MODES = [
+      { prompt: 'เรียงจาก “ชั้นนอกสุด (1) ➔ ชั้นในสุด (4)”', order: [1, 2, 3, 4] },
+      { prompt: 'กลับด้าน! เรียงจาก “ชั้นในสุด (1) ➔ ชั้นนอกสุด (4)”', order: [4, 3, 2, 1] }
+    ];
+    let g3i = 0, g3DoneCount = 0;
+
+    function initG3() {
+      g3DoneCount = 0;
+      const m = G3_MODES[g3i];
+      document.getElementById('g3-prompt').textContent = m.prompt;
+      document.getElementById('g3-fb').classList.add('hidden');
+      document.getElementById('g3-next').classList.add('hidden');
+
+      const slots = document.getElementById('g3-slots');
+      slots.innerHTML = m.order.map((expectLayer, idx) => `
+        <div data-g3slot data-expect="${expectLayer}" data-filled="false"
+          class="rounded-xl border-2 border-dashed border-purple-300 bg-white p-3 text-center min-h-[64px] flex flex-col items-center justify-center">
+          <span class="text-[11px] font-bold text-purple-700">ลำดับที่ ${idx + 1}</span>
+          <span class="text-[10px] text-stone-400">วางที่นี่</span>
+        </div>
+      `).join('');
+
+      const shuffled = [...WHORLS].sort(() => Math.random() - 0.5);
+      const pieces = document.getElementById('g3-pieces');
+      pieces.innerHTML = shuffled.map(w => `
+        <div data-g3piece data-val="${w.layer}" data-placed="false"
+          class="drag-piece rounded-xl border-2 p-2.5 flex items-center gap-2 ${w.cls}">
+          <span class="text-xl">${w.icon}</span>
+          <span class="font-bold text-xs">${w.name}</span>
+        </div>
+      `).join('');
+
+      attachPointerDrag({
+        containerEl: document.getElementById('gp-3'),
+        pieceSelector: '[data-g3piece]',
+        slotSelector: '[data-g3slot]',
+        onMatch: (piece, slot) => {
+          const w = WHORLS.find(x => x.layer === parseInt(piece.dataset.val, 10));
+          piece.dataset.placed = 'true';
+          piece.style.opacity = '0.3';
+          piece.classList.add('pointer-events-none');
+
+          slot.dataset.filled = 'true';
+          slot.className = `rounded-xl border-2 p-2.5 text-center min-h-[64px] flex flex-col items-center justify-center pop-snap ${w.cls}`;
+          slot.innerHTML = `<span class="text-lg">${w.icon}</span><span class="text-[11px] font-bold leading-tight">${w.name}</span>`;
+
+          g3DoneCount++;
+          if (g3DoneCount === 4) {
+            addScore(20);
+            const fb = document.getElementById('g3-fb');
+            fb.className = 'mt-3 rounded-xl p-3 text-xs sm:text-sm text-center bg-emerald-100 text-emerald-950 font-bold';
+            fb.textContent = '🎯 สุดยอด! ลากเรียงลำดับชั้นถูกต้องเป๊ะ (+20 ⭐)';
+            fb.classList.remove('hidden');
+            document.getElementById('g3-next').classList.remove('hidden');
+          }
+        },
+        onMismatch: (slot) => {
+          slot.classList.add('shake-soft', 'border-rose-400', 'bg-rose-50');
+          setTimeout(() => slot.classList.remove('shake-soft', 'border-rose-400', 'bg-rose-50'), 400);
+          showToast('ลำดับยังไม่ใช่น้า ลองดูโจทย์อีกครั้ง!', false);
+        }
+      });
+    }
+    function nextG3() { g3i = (g3i + 1) % G3_MODES.length; initG3(); }
+
+    // ==================== BOOT ====================
+    renderExplodedList();
+    updateSandbox();
+  </script>
+</body>
+</html>
