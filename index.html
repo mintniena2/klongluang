@@ -66,9 +66,9 @@
 </head>
 <body class="pb-16">
 
-  <!-- STUDENT REGISTRATION MODAL (บังคับกรอกชื่อ + รหัส 10 หลัก) -->
-  <div id="student-modal" class="fixed inset-0 z-[60] bg-emerald-950/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-[#FFFDF9] border-2 border-pink-200 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl slide-up">
+  <!-- STUDENT REGISTRATION MODAL + TEACHER MODE -->
+  <div id="student-modal" class="fixed inset-0 z-[60] bg-emerald-950/60 backdrop-blur-sm flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div class="bg-[#FFFDF9] border-2 border-pink-200 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl slide-up my-auto">
       <div class="text-center mb-4">
         <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-pink-400 to-amber-300 flex items-center justify-center text-3xl shadow-sm mb-2">
           🎒
@@ -101,6 +101,27 @@
           ✨ ยืนยันข้อมูล &amp; เริ่มเล่นสะสมดาว
         </button>
       </form>
+
+      <!-- ช่องทางสำหรับคุณครูเข้าสอน (กันเด็กกดข้ามด้วยรหัสผ่านครู) -->
+      <div class="mt-4 pt-3 border-t border-emerald-100 text-center">
+        <button type="button" onclick="toggleTeacherPinBox()"
+          class="text-xs font-bold text-emerald-700 hover:text-pink-600 underline underline-offset-2">
+          👩‍🏫 สำหรับคุณครูเข้าสอน / ทดสอบ (ไม่ต้องกรอกรหัส 10 หลัก)
+        </button>
+
+        <div id="teacher-pin-box" class="hidden mt-3 bg-purple-50 border border-purple-200 rounded-2xl p-3 space-y-2 text-left">
+          <label class="block text-[11px] font-bold text-purple-900">รหัสผ่านคุณครู (ค่าเริ่มต้น: 9595)</label>
+          <div class="flex gap-2">
+            <input id="teacher-pin-input" type="password" inputmode="numeric" maxlength="10" placeholder="กรอกรหัสครู"
+              class="flex-1 px-3 py-2 rounded-xl border border-purple-300 text-sm bg-white focus:outline-none focus:border-purple-500" />
+            <button type="button" onclick="enterTeacherMode()"
+              class="font-cute px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-sm shrink-0">
+              เข้าโหมดสอน
+            </button>
+          </div>
+          <p id="teacher-pin-err" class="hidden text-[11px] font-bold text-rose-600"></p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -108,21 +129,25 @@
   <div id="profile-modal" class="fixed inset-0 z-[55] bg-emerald-950/50 backdrop-blur-sm hidden items-center justify-center p-4" onclick="if(event.target===this) closeProfileModal()">
     <div class="bg-[#FFFDF9] border-2 border-emerald-200 rounded-3xl max-w-md w-full p-5 shadow-2xl slide-up max-h-[85vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-emerald-100 pb-3 mb-3">
-        <h3 class="font-cute text-lg font-bold text-emerald-950">👩‍🎓 ข้อมูลผู้เล่น &amp; การส่งคะแนน</h3>
+        <h3 class="font-cute text-lg font-bold text-emerald-950" id="prof-title">👩‍🎓 ข้อมูลผู้เล่น &amp; การส่งคะแนน</h3>
         <button onclick="closeProfileModal()" class="px-3 py-1 rounded-full bg-stone-100 text-stone-700 text-xs font-bold">✕ ปิด</button>
       </div>
 
       <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 space-y-1 mb-3">
-        <div class="text-xs text-emerald-700">ชื่อนักเรียน: <strong id="prof-name" class="text-emerald-950 text-sm"></strong></div>
-        <div class="text-xs text-emerald-700">รหัส 10 หลัก: <strong id="prof-id" class="text-emerald-950 tracking-wider"></strong></div>
+        <div class="text-xs text-emerald-700">ผู้ใช้งาน: <strong id="prof-name" class="text-emerald-950 text-sm"></strong></div>
+        <div class="text-xs text-emerald-700" id="prof-id-row">รหัส 10 หลัก: <strong id="prof-id" class="text-emerald-950 tracking-wider"></strong></div>
         <div class="text-xs text-emerald-700">ดาวสะสมรอบนี้: <strong id="prof-stars" class="text-amber-700 text-sm">0 ⭐</strong></div>
         <div class="text-[11px] pt-1" id="prof-sync-info"></div>
       </div>
 
-      <div class="flex gap-2 mb-4">
-        <button onclick="manualSyncScore()"
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button id="btn-manual-sync" onclick="manualSyncScore()"
           class="flex-1 font-cute py-2.5 px-3 rounded-xl bg-emerald-500 text-white text-xs font-bold shadow-sm active:scale-98">
           📤 ส่งคะแนนให้ครูตอนนี้
+        </button>
+        <button id="btn-teacher-test-sync" onclick="testTeacherSheetSync()"
+          class="hidden flex-1 font-cute py-2.5 px-3 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-sm active:scale-98">
+          🧪 ทดสอบส่งเข้าชีท
         </button>
         <button onclick="switchStudentAccount()"
           class="font-cute py-2.5 px-3 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold active:scale-98">
@@ -154,7 +179,7 @@
 
       <div class="flex items-center gap-1.5 shrink-0">
         <button onclick="openProfileModal()" id="student-pill"
-          class="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold text-emerald-900 max-w-[140px] sm:max-w-[210px] hover:bg-emerald-100">
+          class="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold text-emerald-900 max-w-[145px] sm:max-w-[220px] hover:bg-emerald-100">
           <span id="sync-dot" class="w-2 h-2 rounded-full bg-stone-400 shrink-0" title="สถานะเชื่อมต่อชีท"></span>
           <span id="header-student-text" class="truncate">ลงทะเบียน</span>
         </button>
@@ -609,13 +634,17 @@
   </main>
 
   <script>
-    // ==================== GOOGLE SHEETS CONFIG ====================
-    // ครูนำ Web App URL จาก Google Apps Script มาวางในเครื่องหมายคำพูดด้านล่างนี้
+    // ==================== GOOGLE SHEETS & TEACHER CONFIG ====================
+    // 1. ครูนำ Web App URL จาก Google Apps Script มาวางในเครื่องหมายคำพูดด้านล่างนี้
     const GOOGLE_SCRIPT_URL = '';
 
+    // 2. รหัสผ่านสำหรับคุณครูเข้าสอน (เปลี่ยนเป็นเลขที่ต้องการได้)
+    const TEACHER_PIN = '9595';
+
     // ==================== STUDENT SESSION & SHEET LOGGER ====================
-    const STORAGE_KEY = 'wonderbotany_m5_student_v1';
-    let student = { id: '', name: '' };
+    const STORAGE_KEY = 'wonderbotany_m5_student_v2';
+    let student = { id: '', name: '', isTeacher: false };
+    let score = 0;
     let activityLogs = [];
     let growthVisitedLogged = false;
 
@@ -659,12 +688,36 @@
       }
 
       errEl.classList.add('hidden');
-      student = { id: idInput, name: nameInput };
+      student = { id: idInput, name: nameInput, isTeacher: false };
       saveLocalSession();
       updateHeaderStudentUI();
       document.getElementById('student-modal').classList.add('hidden');
       showToast(`ยินดีต้อนรับ ${student.name} เริ่มสะสมดาวเลย!`);
       logActivity('เข้าใช้งานแอพ', 'ลงทะเบียนเริ่มเรียน', 0);
+    }
+
+    function toggleTeacherPinBox() {
+      const box = document.getElementById('teacher-pin-box');
+      box.classList.toggle('hidden');
+      if (!box.classList.contains('hidden')) {
+        document.getElementById('teacher-pin-input').focus();
+      }
+    }
+
+    function enterTeacherMode() {
+      const pin = document.getElementById('teacher-pin-input').value.trim();
+      const err = document.getElementById('teacher-pin-err');
+      if (pin !== TEACHER_PIN) {
+        err.textContent = 'รหัสผ่านคุณครูไม่ถูกต้อง';
+        err.classList.remove('hidden');
+        return;
+      }
+      err.classList.add('hidden');
+      student = { id: 'TEACHER', name: 'คุณครู (โหมดสอน)', isTeacher: true };
+      saveLocalSession();
+      updateHeaderStudentUI();
+      document.getElementById('student-modal').classList.add('hidden');
+      showToast('👩‍🏫 เข้าสู่โหมดคุณครูแล้ว (ไม่บันทึกคะแนนลงชีท)');
     }
 
     function saveLocalSession() {
@@ -682,7 +735,7 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return false;
         const parsed = JSON.parse(raw);
-        if (parsed && parsed.student && /^\d{10}$/.test(parsed.student.id) && parsed.student.name) {
+        if (parsed && parsed.student && (parsed.student.isTeacher || (/^\d{10}$/.test(parsed.student.id) && parsed.student.name))) {
           student = parsed.student;
           score = Number(parsed.score || 0);
           activityLogs = Array.isArray(parsed.logs) ? parsed.logs : [];
@@ -695,9 +748,16 @@
     }
 
     function updateHeaderStudentUI() {
+      const pill = document.getElementById('student-pill');
       const txt = document.getElementById('header-student-text');
       const dot = document.getElementById('sync-dot');
-      if (student.id) {
+
+      if (student.isTeacher) {
+        pill.className = 'flex items-center gap-1.5 bg-purple-50 border border-purple-300 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold text-purple-900 max-w-[145px] sm:max-w-[220px] hover:bg-purple-100';
+        txt.textContent = '👩‍🏫 โหมดคุณครู';
+        dot.className = 'w-2 h-2 rounded-full bg-purple-500 shrink-0';
+      } else if (student.id) {
+        pill.className = 'flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold text-emerald-900 max-w-[145px] sm:max-w-[220px] hover:bg-emerald-100';
         txt.textContent = `${student.name} (${student.id.slice(-4)})`;
         dot.className = GOOGLE_SCRIPT_URL
           ? 'w-2 h-2 rounded-full bg-emerald-500 shrink-0'
@@ -708,14 +768,26 @@
       }
     }
 
-    async function logActivity(activity, detail, starsEarned = 0) {
+    async function logActivity(activity, detail, starsEarned = 0, forceSend = false) {
       if (!student.id) return;
 
       const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-      const entry = { time: timeStr, activity, detail, starsEarned, totalStars: score, synced: false };
+      const entry = {
+        time: timeStr,
+        activity,
+        detail: student.isTeacher && !forceSend ? `${detail} (โหมดสอน ไม่ส่งชีท)` : detail,
+        starsEarned,
+        totalStars: score
+      };
       activityLogs.unshift(entry);
       if (activityLogs.length > 30) activityLogs.pop();
       saveLocalSession();
+
+      // โหมดคุณครูจะไม่ส่งคะแนนลงชีท ยกเว้นคุณครูกดปุ่ม "ทดสอบส่งเข้าชีท" เอง
+      if (student.isTeacher && !forceSend) {
+        renderProfileLogs();
+        return;
+      }
 
       if (!GOOGLE_SCRIPT_URL) {
         renderProfileLogs();
@@ -731,17 +803,17 @@
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
-            studentId: student.id,
-            studentName: student.name,
+            studentId: forceSend ? '0000000000' : student.id,
+            studentName: forceSend ? 'ทดสอบระบบ (โดยคุณครู)' : student.name,
             activity,
             detail,
             starsEarned,
             totalStars: score
           })
         });
-        entry.synced = true;
-        saveLocalSession();
-        dot.className = 'w-2 h-2 rounded-full bg-emerald-500 shrink-0';
+        dot.className = student.isTeacher
+          ? 'w-2 h-2 rounded-full bg-purple-500 shrink-0'
+          : 'w-2 h-2 rounded-full bg-emerald-500 shrink-0';
       } catch (err) {
         dot.className = 'w-2 h-2 rounded-full bg-rose-500 shrink-0';
       }
@@ -753,12 +825,27 @@
         document.getElementById('student-modal').classList.remove('hidden');
         return;
       }
+      document.getElementById('prof-title').textContent = student.isTeacher
+        ? '👩‍🏫 โหมดคุณครู (สำหรับสอน/ทดสอบ)'
+        : '👩‍🎓 ข้อมูลผู้เล่น & การส่งคะแนน';
       document.getElementById('prof-name').textContent = student.name;
+      document.getElementById('prof-id-row').classList.toggle('hidden', student.isTeacher);
       document.getElementById('prof-id').textContent = student.id;
       document.getElementById('prof-stars').textContent = `${score} ⭐`;
-      document.getElementById('prof-sync-info').innerHTML = GOOGLE_SCRIPT_URL
-        ? '<span class="text-emerald-700 font-bold">🟢 เชื่อมต่อชีทคุณครูแล้ว (บันทึกอัตโนมัติ)</span>'
-        : '<span class="text-amber-700 font-bold">🟡 โหมดทดลองในเครื่อง (ยังไม่ได้ใส่ URL ชีทครู)</span>';
+
+      document.getElementById('btn-manual-sync').classList.toggle('hidden', student.isTeacher);
+      document.getElementById('btn-teacher-test-sync').classList.toggle('hidden', !student.isTeacher);
+
+      if (student.isTeacher) {
+        document.getElementById('prof-sync-info').innerHTML = GOOGLE_SCRIPT_URL
+          ? '<span class="text-purple-700 font-bold">🟣 โหมดสอน: เชื่อมต่อ URL ชีทแล้ว (ไม่ส่งคะแนนมั่วขณะสอน)</span>'
+          : '<span class="text-amber-700 font-bold">🟡 ยังไม่ได้วาง GOOGLE_SCRIPT_URL ในโค้ด HTML</span>';
+      } else {
+        document.getElementById('prof-sync-info').innerHTML = GOOGLE_SCRIPT_URL
+          ? '<span class="text-emerald-700 font-bold">🟢 เชื่อมต่อชีทคุณครูแล้ว (บันทึกอัตโนมัติ)</span>'
+          : '<span class="text-amber-700 font-bold">🟡 โหมดทดลองในเครื่อง (ยังไม่ได้ใส่ URL ชีทครู)</span>';
+      }
+
       renderProfileLogs();
       const m = document.getElementById('profile-modal');
       m.classList.remove('hidden');
@@ -794,23 +881,33 @@
       showToast(GOOGLE_SCRIPT_URL ? '📤 ส่งคะแนนเข้าชีทครูเรียบร้อย!' : 'บันทึกในเครื่องแล้ว (รอครูเชื่อม URL ชีท)');
     }
 
+    async function testTeacherSheetSync() {
+      if (!GOOGLE_SCRIPT_URL) {
+        showToast('กรุณานำ Web App URL มาวางในตัวแปร GOOGLE_SCRIPT_URL ก่อนนะครับ', false);
+        return;
+      }
+      await logActivity('ทดสอบระบบ', 'คุณครูกดทดสอบการเชื่อมต่อ Google Sheet', 0, true);
+      showToast('🧪 ส่งข้อมูลทดสอบแล้ว! เปิดดูใน Google Sheets ได้เลย');
+    }
+
     function switchStudentAccount() {
       closeProfileModal();
       clearInterval(g1Tid);
       localStorage.removeItem(STORAGE_KEY);
-      student = { id: '', name: '' };
+      student = { id: '', name: '', isTeacher: false };
       score = 0;
       activityLogs = [];
       growthVisitedLogged = false;
       document.getElementById('score-display').textContent = '0';
       document.getElementById('reg-name').value = '';
       document.getElementById('reg-id').value = '';
+      document.getElementById('teacher-pin-input').value = '';
+      document.getElementById('teacher-pin-box').classList.add('hidden');
       handleIdInput(document.getElementById('reg-id'));
       updateHeaderStudentUI();
 
-      // รีเซ็ตสถานะเกมสำหรับผู้เล่นใหม่
-      g1i = 0; g1Wins = 0; g1Inited = false;
-      g2i = 0; g2Wins = 0; g2str = 0; g2BestStr = 0; g2Inited = false;
+      g1i = 0; g1Wins = 0; g1RoundStars = 0; g1Inited = false;
+      g2i = 0; g2Wins = 0; g2str = 0; g2BestStr = 0; g2RoundStars = 0; g2Inited = false;
       g3i = 0; g3Inited = false;
       document.getElementById('student-modal').classList.remove('hidden');
     }
@@ -867,7 +964,6 @@
       }
     ];
 
-    let score = 0;
     let currentGameTab = 1;
     let g1Tid = null;
     let g1Inited = false, g2Inited = false, g3Inited = false;
