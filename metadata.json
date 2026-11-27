@@ -1,6 +1,0 @@
-{
-  "name": "Saraban Form Studio — ระบบสร้างเอกสารราชการและบันทึกตรวจสอบรายบุคคล",
-  "description": "เว็บแอปพลิเคชันสำหรับสร้างแบบฟอร์มงานสารบรรณและบันทึกข้อความตามระเบียบ รองรับการนำเข้ารายชื่อ การพิมพ์แยกชุดรายบุคคล และส่งออก PDF / DOC",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
