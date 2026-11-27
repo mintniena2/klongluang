@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-ui: 'IBM Plex Sans Thai', system-ui, -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-official: 'Sarabun', 'TH Sarabun New', 'TH SarabunPSK', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-ui);
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+}
+
+.font-official {
+  font-family: var(--font-official);
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Official Thai Document A4 Sheet Styling */
+.a4-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  color: #111111;
+  font-family: var(--font-official);
+  font-size: 16pt;
+  line-height: 1.48;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.a4-sheet-memo {
+  padding: 18mm 20mm 20mm 30mm;
+}
+
+.a4-sheet-external {
+  padding: 15mm 20mm 20mm 30mm;
+}
+
+.a4-sheet-attachment {
+  padding: 20mm 20mm 20mm 25mm;
+}
+
+.thai-indent {
+  text-indent: 25mm;
+}
+
+/* Print / PDF Stylesheet */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only-root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  .a4-sheet {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    height: auto !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .a4-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}
